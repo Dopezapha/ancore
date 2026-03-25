@@ -110,3 +110,32 @@ export class TransactionSubmissionError extends AncoreSdkError {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Session-key execution errors
+// ---------------------------------------------------------------------------
+
+/**
+ * Thrown when executeWithSessionKey() is called with invalid inputs.
+ */
+export class SessionKeyExecutionValidationError extends AncoreSdkError {
+  constructor(message: string) {
+    super('SESSION_KEY_EXECUTION_VALIDATION', message);
+    this.name = 'SessionKeyExecutionValidationError';
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Thrown when session-key execution fails after delegating to the execution layer.
+ */
+export class SessionKeyExecutionError extends AncoreSdkError {
+  public readonly cause?: unknown;
+
+  constructor(code: string, message: string, cause?: unknown) {
+    super(code, message);
+    this.name = 'SessionKeyExecutionError';
+    this.cause = cause;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}

@@ -27,7 +27,20 @@ export {
   SimulationExpiredError,
   BuilderValidationError,
   TransactionSubmissionError,
+  SessionKeyExecutionValidationError,
+  SessionKeyExecutionError,
 } from './errors';
+
+export {
+  AncoreClient,
+  mapExecuteWithSessionKeyError,
+  type AncoreClientOptions,
+  type ExecuteWithSessionKeyParams,
+  type ExecuteWithSessionKeyResult,
+  type SessionKeyExecutionLayer,
+  type SessionKeyExecutionRequest,
+  type SessionKeySignerInputs,
+} from './execute-with-session-key';
 
 // Secure Storage
 export { SecureStorageManager } from './storage/secure-storage-manager';
