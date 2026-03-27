@@ -1,3 +1,5 @@
+/* eslint-disable no-redeclare */
+
 import type {
   AccountContractReadOptions,
   AccountContractWriteResult,
@@ -5,36 +7,33 @@ import type {
 } from './account-contract';
 import { AccountContract } from './account-contract';
 
-type AddSessionKeyHelper = {
-  (
-    contract: AccountContract | string,
-    publicKey: string | Uint8Array,
-    permissions: number[],
-    expiresAt: number
-  ): InvocationArgs;
-  (
-    contract: AccountContract | string,
-    publicKey: string | Uint8Array,
-    permissions: number[],
-    expiresAt: number,
-    options: AccountContractReadOptions
-  ): Promise<AccountContractWriteResult>;
-};
-
 function getContract(contract: AccountContract | string): AccountContract {
   return typeof contract === 'string' ? new AccountContract(contract) : contract;
 }
 
-export const addSessionKey: AddSessionKeyHelper = (
-  contract,
-  publicKey,
-  permissions,
-  expiresAt,
-  options?
-) =>
-  getContract(contract).addSessionKey(
-    publicKey,
-    permissions,
-    expiresAt,
-    options as AccountContractReadOptions
-  ) as InvocationArgs | Promise<AccountContractWriteResult>;
+export function addSessionKey(
+  contract: AccountContract | string,
+  publicKey: string | Uint8Array,
+  permissions: number[],
+  expiresAt: number
+): InvocationArgs;
+export function addSessionKey(
+  contract: AccountContract | string,
+  publicKey: string | Uint8Array,
+  permissions: number[],
+  expiresAt: number,
+  options: AccountContractReadOptions
+): Promise<AccountContractWriteResult>;
+export function addSessionKey(
+  contract: AccountContract | string,
+  publicKey: string | Uint8Array,
+  permissions: number[],
+  expiresAt: number,
+  options?: AccountContractReadOptions
+): InvocationArgs | Promise<AccountContractWriteResult> {
+  if (options) {
+    return getContract(contract).addSessionKey(publicKey, permissions, expiresAt, options);
+  }
+
+  return getContract(contract).addSessionKey(publicKey, permissions, expiresAt);
+}
