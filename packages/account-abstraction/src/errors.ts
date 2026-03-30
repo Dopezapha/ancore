@@ -70,9 +70,7 @@ export class UnauthorizedError extends AccountContractError {
  */
 export class SessionKeyNotFoundError extends AccountContractError {
   constructor(publicKey?: string) {
-    const msg = publicKey
-      ? `Session key not found: ${publicKey}`
-      : 'Session key not found';
+    const msg = publicKey ? `Session key not found: ${publicKey}` : 'Session key not found';
     super(msg, 'SESSION_KEY_NOT_FOUND');
     this.name = 'SessionKeyNotFoundError';
     Object.setPrototypeOf(this, SessionKeyNotFoundError.prototype);
@@ -98,12 +96,21 @@ export const CONTRACT_ERROR_MESSAGES = {
   ALREADY_INITIALIZED: 'Already initialized',
   NOT_INITIALIZED: 'Not initialized',
   INVALID_NONCE: 'Invalid nonce',
+  SESSION_KEY_NOT_FOUND: 'Session key not found',
 } as const;
+
+export interface ContractErrorContext {
+  sessionPublicKey?: string;
+}
 
 /**
  * Maps a contract error message or simulation/result error to a typed error.
  */
-export function mapContractError(message: string, raw?: unknown): AccountContractError {
+export function mapContractError(
+  message: string,
+  raw?: unknown,
+  context: ContractErrorContext = {}
+): AccountContractError {
   if (message.includes(CONTRACT_ERROR_MESSAGES.ALREADY_INITIALIZED)) {
     return new AlreadyInitializedError();
   }
@@ -112,6 +119,12 @@ export function mapContractError(message: string, raw?: unknown): AccountContrac
   }
   if (message.includes(CONTRACT_ERROR_MESSAGES.INVALID_NONCE)) {
     return new InvalidNonceError(message);
+  }
+  if (
+    message.includes(CONTRACT_ERROR_MESSAGES.SESSION_KEY_NOT_FOUND) ||
+    (message.toLowerCase().includes('session key') && message.toLowerCase().includes('not found'))
+  ) {
+    return new SessionKeyNotFoundError(context.sessionPublicKey);
   }
   if (
     typeof message === 'string' &&
