@@ -4,7 +4,7 @@ import { Keypair } from '@stellar/stellar-sdk';
 
 /**
  * Derives a Stellar keypair from a BIP39 mnemonic phrase and account index.
- * Uses the standard BIP44 derivation path for Stellar: m/44'/148'/0'/0/{index}
+ * Uses the standard BIP44 derivation path for Stellar: m/44'/148'/{index}'
  *
  * @param {string} mnemonic - The BIP39 mnemonic phrase (12 or 24 words)
  * @param {number} index - The account index (0-based)
@@ -21,16 +21,14 @@ export function deriveKeypairFromMnemonic(mnemonic: string, index: number): Keyp
     throw new Error('Index must be a non-negative integer');
   }
 
-  // Convert mnemonic to seed (Bypassing outdated TypeScript definitions with 'any')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const seed = (bip39 as any).mnemonicToSeedSync(mnemonic);
+  // Convert mnemonic to seed
+  // @ts-expect-error - Bypassing incomplete local type definitions in crypto/src/types/bip39.d.ts
+  const seed = bip39.mnemonicToSeedSync(mnemonic);
 
-  // Derive the path using BIP44 for Stellar: m/44'/148'/0'/0/{index}
+  // Derive the path using BIP44 for Stellar: m/44'/148'/{index}'
   // 44' - BIP44 purpose
   // 148' - Stellar coin type (https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
-  // 0' - account level
-  // 0 - change level (0 for external addresses)
-  // {index} - address index
+  // {index}' - account index
   const path = `m/44'/148'/${index}'`;
   const derivedKey = ed25519HdKey.derivePath(path, seed.toString('hex'));
 
