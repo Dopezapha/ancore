@@ -21,11 +21,9 @@ export function deriveKeypairFromMnemonic(mnemonic: string, index: number): Keyp
     throw new Error('Index must be a non-negative integer');
   }
 
-  // Convert mnemonic to seed
-  const seed = bip39.mnemonicToSeedSync(mnemonic);
-
-  // Derive the master key
-  const masterKey = ed25519HdKey.getMasterKeyFromSeed(seed);
+  // Convert mnemonic to seed (Bypassing outdated TypeScript definitions with 'any')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const seed = (bip39 as any).mnemonicToSeedSync(mnemonic);
 
   // Derive the path using BIP44 for Stellar: m/44'/148'/0'/0/{index}
   // 44' - BIP44 purpose
