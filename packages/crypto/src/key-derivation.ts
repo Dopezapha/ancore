@@ -1,4 +1,4 @@
-import * as bip39 from 'bip39';
+import { validateMnemonic, mnemonicToSeedSync } from 'bip39';
 import * as ed25519HdKey from 'ed25519-hd-key';
 import { Keypair } from '@stellar/stellar-sdk';
 
@@ -13,7 +13,7 @@ import { Keypair } from '@stellar/stellar-sdk';
  */
 export function deriveKeypairFromMnemonic(mnemonic: string, index: number): Keypair {
   // Validate inputs
-  if (!bip39.validateMnemonic(mnemonic)) {
+  if (!validateMnemonic(mnemonic)) {
     throw new Error('Invalid mnemonic phrase');
   }
 
@@ -44,7 +44,6 @@ export function deriveKeypairFromMnemonic(mnemonic: string, index: number): Keyp
  */
 export function validateMnemonicForStellar(mnemonic: string): boolean {
   try {
-    // Try to derive a keypair with index 0
     deriveKeypairFromMnemonic(mnemonic, 0);
     return true;
   } catch {
