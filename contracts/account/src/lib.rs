@@ -442,6 +442,25 @@ mod test {
     }
 
     #[test]
+    fn test_get_owner_before_initialize_returns_not_initialized() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, AncoreAccount);
+        let client = AncoreAccountClient::new(&env, &contract_id);
+
+        let result = client.try_get_owner();
+        assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+    }
+
+    #[test]
+    fn test_get_version_defaults_to_zero_before_initialize_for_compatibility() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, AncoreAccount);
+        let client = AncoreAccountClient::new(&env, &contract_id);
+
+        assert_eq!(client.get_version(), 0);
+    }
+
+    #[test]
     fn test_initialize_emits_event() {
         let env = Env::default();
         let contract_id = env.register_contract(None, AncoreAccount);
@@ -574,6 +593,28 @@ mod test {
 
         client.revoke_session_key(&session_pk);
         assert!(!client.has_session_key(&session_pk));
+    }
+
+    #[test]
+    fn test_revoke_session_key_removes_session_key_storage_entry() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, AncoreAccount);
+        let client = AncoreAccountClient::new(&env, &contract_id);
+
+        let owner = Address::generate(&env);
+        client.initialize(&owner);
+
+        env.mock_all_auths();
+
+        let session_pk = BytesN::from_array(&env, &[2u8; 32]);
+        let expires_at = 1000u64;
+        let permissions = Vec::new(&env);
+
+        client.add_session_key(&session_pk, &expires_at, &permissions);
+        assert!(client.get_session_key(&session_pk).is_some());
+
+        client.revoke_session_key(&session_pk);
+        assert!(client.get_session_key(&session_pk).is_none());
     }
 
     #[test]
@@ -745,6 +786,21 @@ mod test {
 
         let session_key = client.get_session_key(&session_pk);
         assert!(session_key.is_some());
+    }
+
+    #[test]
+    fn test_refresh_session_key_ttl_unknown_key_returns_session_key_not_found() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, AncoreAccount);
+        let client = AncoreAccountClient::new(&env, &contract_id);
+
+        let owner = Address::generate(&env);
+        client.initialize(&owner);
+
+        let unknown_session_pk = BytesN::from_array(&env, &[9u8; 32]);
+        let result = client.try_refresh_session_key_ttl(&unknown_session_pk);
+
+        assert_eq!(result, Err(Ok(ContractError::SessionKeyNotFound)));
     }
 
     #[test]
@@ -1027,6 +1083,75 @@ mod test {
             &Some(payload2),
         );
         let res_u64: u64 = soroban_sdk::FromVal::from_val(&env, &result2);
+        assert_eq!(res_u64, 0);
+    }
+
+    #[test]
+    fn test_execute_session_key_missing_signature_rejected() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, AncoreAccount);
+        let client = AncoreAccountClient::new(&env, &contract_id);
+
+        let owner = Address::generate(&env);
+        client.initialize(&owner);
+        env.mock_all_auths();
+
+        let mut csprng = OsRng;
+        let signing_key = SigningKey::generate(&mut csprng);
+        let session_pk = BytesN::from_array(&env, &signing_key.verifying_key().to_bytes());
+
+        let expires_at = env.ledger().timestamp() + 10000;
+        let mut permissions = Vec::new(&env);
+        permissions.push_back(PERMISSION_EXECUTE);
+        client.add_session_key(&session_pk, &expires_at, &permissions);
+
+        let callee_id = env.register_contract(None, AncoreAccount);
+        let function = soroban_sdk::symbol_short!("get_nonce");
+        let args = Vec::new(&env);
+
+        // Attempt to execute with session key but missing signature (signature=None)
+        let result = client.try_execute(
+            &CallerIdentity::SessionKey(session_pk.clone()),
+            &callee_id,
+            &function,
+            &args,
+            &0u64,
+            &Some(session_pk),
+            &None, // signature=None
+            &None, // signature_payload=None
+        );
+
+        // Should fail with unauthorized session-key missing signature
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_execute_owner_path_unaffected_by_session_signature_requirements() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, AncoreAccount);
+        let client = AncoreAccountClient::new(&env, &contract_id);
+
+        let owner = Address::generate(&env);
+        client.initialize(&owner);
+        env.mock_all_auths();
+
+        let callee_id = env.register_contract(None, AncoreAccount);
+        let function = soroban_sdk::symbol_short!("get_nonce");
+        let args = Vec::new(&env);
+
+        // Owner path should succeed even with None signature params
+        let result = client.execute(
+            &CallerIdentity::Owner,
+            &callee_id,
+            &function,
+            &args,
+            &0u64,
+            &None, // session_pub_key=None
+            &None, // signature=None
+            &None, // signature_payload=None
+        );
+
+        let res_u64: u64 = soroban_sdk::FromVal::from_val(&env, &result);
         assert_eq!(res_u64, 0);
     }
 }
