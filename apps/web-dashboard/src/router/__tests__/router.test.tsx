@@ -97,4 +97,18 @@ describe('dashboard router', () => {
 
     expect(await screen.findByRole('heading', { name: /overview/i })).toBeInTheDocument();
   });
+
+  it('renders the transaction table route for authenticated users', async () => {
+    writeSession({
+      userId: 'user-1',
+      displayName: 'Ops Admin',
+      accessToken: 'token-1',
+      refreshToken: 'refresh-1',
+      accessTokenExpiresAt: Date.now() + 60_000,
+    });
+
+    render(<DashboardAppTestHarness initialEntries={['/dashboard/transactions']} />);
+
+    expect(await screen.findByRole('heading', { name: /transactions/i })).toBeInTheDocument();
+  });
 });
